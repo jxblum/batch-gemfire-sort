@@ -17,12 +17,6 @@ package io.spring.batch.configuration;
 
 import java.util.Arrays;
 
-import io.spring.batch.batch.CountingItemWriter;
-import io.spring.batch.batch.FileWritingStepExecutionListner;
-import io.spring.batch.batch.SortFileItemReader;
-import io.spring.batch.domain.Item;
-import io.spring.batch.geode.SortedFileWriterFunctionExecution;
-
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.integration.config.annotation.EnableBatchIntegration;
@@ -40,11 +34,17 @@ import org.springframework.core.io.Resource;
 import org.springframework.data.gemfire.GemfireTemplate;
 import org.springframework.integration.channel.DirectChannel;
 
+import io.spring.batch.batch.CountingItemWriter;
+import io.spring.batch.batch.FileWritingStepExecutionListner;
+import io.spring.batch.batch.SortFileItemReader;
+import io.spring.batch.domain.Item;
+import io.spring.batch.geode.SortedFileWriterFunctionExecution;
+
 /**
  * @author Michael Minella
  */
-@EnableBatchIntegration
 @Configuration
+@EnableBatchIntegration
 public class BatchConfiguration {
 
 	@Autowired
@@ -118,5 +118,4 @@ public class BatchConfiguration {
 //		public GemfireCountTasklet tasklet() {
 //			return new GemfireCountTasklet(gemfireTemplate(null));
 //		}
-
 }

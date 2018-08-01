@@ -17,9 +17,6 @@ package io.spring.batch.configuration;
 
 import java.util.Collections;
 
-import io.spring.batch.domain.Item;
-import io.spring.batch.geode.SortedFileWriterFunction;
-import io.spring.batch.geode.SortingPartitionResolver;
 import org.apache.geode.cache.FixedPartitionAttributes;
 import org.apache.geode.cache.GemFireCache;
 import org.apache.geode.cache.PartitionAttributes;
@@ -28,7 +25,6 @@ import org.apache.geode.cache.RegionAttributes;
 import org.apache.geode.pdx.PdxReader;
 import org.apache.geode.pdx.PdxSerializer;
 import org.apache.geode.pdx.PdxWriter;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,87 +35,93 @@ import org.springframework.data.gemfire.PartitionAttributesFactoryBean;
 import org.springframework.data.gemfire.PartitionedRegionFactoryBean;
 import org.springframework.data.gemfire.RegionAttributesFactoryBean;
 import org.springframework.data.gemfire.config.annotation.EnableLocator;
+import org.springframework.data.gemfire.config.annotation.EnableManager;
 import org.springframework.data.gemfire.config.annotation.EnablePdx;
 import org.springframework.data.gemfire.config.annotation.PeerCacheApplication;
 import org.springframework.data.gemfire.function.config.EnableGemfireFunctionExecutions;
 import org.springframework.data.gemfire.function.config.EnableGemfireFunctions;
 
+import io.spring.batch.domain.Item;
+import io.spring.batch.geode.SortedFileWriterFunction;
+import io.spring.batch.geode.SortingPartitionResolver;
+
 /**
  * @author Michael Minella
  */
-@Configuration
 @PeerCacheApplication(name="SortClusterApplication", locators = "localhost[10334]")
 @EnablePdx(serializerBeanName = "pdxSerializer")
 @EnableGemfireFunctionExecutions(basePackageClasses = SortedFileWriterFunction.class)
 @EnableGemfireFunctions
 public class GeodeConfiguration {
 
-	@Profile("locator")
+	@Profile("locator-manager")
 	@Configuration
 	@EnableLocator
-	public static class Locator{}
+	@EnableManager(start = true)
+	public static class LocatorManagerConfiguration { }
 
 	@Bean("Items")
-	public PartitionedRegionFactoryBean<byte[], Item> partitionedRegion(GemFireCache gemfireCache,
-			RegionAttributes regionAttributes) {
+	public PartitionedRegionFactoryBean<byte[], Item> itemsRegion(GemFireCache gemfireCache,
+			RegionAttributes<byte[], Item> regionAttributes) {
 
-		PartitionedRegionFactoryBean<byte[], Item> partititonedRegion = new PartitionedRegionFactoryBean<>();
+		PartitionedRegionFactoryBean<byte[], Item> itemsRegion = new PartitionedRegionFactoryBean<>();
 
-		partititonedRegion.setCache(gemfireCache);
-		partititonedRegion.setClose(false);
-		partititonedRegion.setPersistent(false);
-		partititonedRegion.setAttributes(regionAttributes);
+		itemsRegion.setCache(gemfireCache);
+		itemsRegion.setClose(false);
+		itemsRegion.setPersistent(false);
+		itemsRegion.setAttributes(regionAttributes);
 
-		return partititonedRegion;
+		return itemsRegion;
 	}
 
 	@Bean
-	public RegionAttributesFactoryBean regionAttributes(PartitionAttributes<byte[], Item> partitionAttributes) {
+	public RegionAttributesFactoryBean itemsRegionAttributes(
+			PartitionAttributes<byte[], Item> itemsPartitionAttributes) {
 
-		RegionAttributesFactoryBean regionAttributes = new RegionAttributesFactoryBean();
+		RegionAttributesFactoryBean itemsRegionAttributes = new RegionAttributesFactoryBean();
 
-		regionAttributes.setPartitionAttributes(partitionAttributes);
+		itemsRegionAttributes.setPartitionAttributes(itemsPartitionAttributes);
 
-		return regionAttributes;
+		return itemsRegionAttributes;
 	}
 
 	@Bean
-	public PartitionAttributesFactoryBean<byte[], Item> partitionAttributes(
-			FixedPartitionAttributes fixedPartitionAttributes,
+	public PartitionAttributesFactoryBean<byte[], Item> itemsPartitionAttributes(
+			FixedPartitionAttributes itemsFixedPartitionAttributes,
 			SortingPartitionResolver partitionResolver) {
 
-		PartitionAttributesFactoryBean<byte[], Item> partitionAttributes = new PartitionAttributesFactoryBean<>();
+		PartitionAttributesFactoryBean<byte[], Item> itemsPartitionAttributes = new PartitionAttributesFactoryBean<>();
 
-		partitionAttributes.setFixedPartitionAttributes(Collections.singletonList(fixedPartitionAttributes));
-		partitionAttributes.setPartitionResolver(partitionResolver);
+		itemsPartitionAttributes.setFixedPartitionAttributes(Collections.singletonList(itemsFixedPartitionAttributes));
+		itemsPartitionAttributes.setPartitionResolver(partitionResolver);
 
-		return partitionAttributes;
+		return itemsPartitionAttributes;
 	}
 
 	@Bean
-	public FixedPartitionAttributesFactoryBean fixedPartitionAttributes(@Value("${partition.name}") String partitionName) {
+	public FixedPartitionAttributesFactoryBean itemsFixedPartitionAttributes(
+			@Value("${partition.name}") String partitionName) {
 
 		System.out.println(">> partitionName = " + partitionName);
 
-		FixedPartitionAttributesFactoryBean fixedPartitionAttributes = new FixedPartitionAttributesFactoryBean();
+		FixedPartitionAttributesFactoryBean itemsFixedPartitionAttributes = new FixedPartitionAttributesFactoryBean();
 
-		fixedPartitionAttributes.setPartitionName(partitionName);
-		fixedPartitionAttributes.setPrimary(true);
+		itemsFixedPartitionAttributes.setPartitionName(partitionName);
+		itemsFixedPartitionAttributes.setPrimary(true);
 
-		return fixedPartitionAttributes;
+		return itemsFixedPartitionAttributes;
 
 	}
 
 
 	@Bean
 	public GemfireTemplate gemfireTemplate(Region<?,?> region) {
-		GemfireTemplate template = new GemfireTemplate(region);
-
-		return template;
+		return new GemfireTemplate(region);
 	}
 
 	@Bean
 	public PdxSerializer pdxSerializer() {
+
 		return new PdxSerializer() {
 
 			@Override
@@ -135,5 +137,4 @@ public class GeodeConfiguration {
 			}
 		};
 	}
-
 }
